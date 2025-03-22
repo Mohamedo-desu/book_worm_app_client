@@ -1,6 +1,6 @@
 import { API_URL } from "@/constants/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
+import { deleteStoredValues, getStoredValues, saveSecurely } from "./storage";
 
 // Define a generic User type. Update fields as needed.
 interface User {
@@ -61,8 +61,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
         throw new Error(data.message || "Something went wrong");
       }
 
-      await AsyncStorage.setItem("user", JSON.stringify(data.user));
-      await AsyncStorage.setItem("token", data.token);
+      saveSecurely([{ key: "userJson", value: JSON.stringify(data.user) }]);
+      saveSecurely([{ key: "token", value: data.token }]);
 
       set({ user: data.user, token: data.token, isLoading: false });
 
@@ -91,8 +91,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
         throw new Error(data.message || "Something went wrong");
       }
 
-      await AsyncStorage.setItem("user", JSON.stringify(data.user));
-      await AsyncStorage.setItem("token", data.token);
+      saveSecurely([{ key: "userJson", value: JSON.stringify(data.user) }]);
+      saveSecurely([{ key: "token", value: data.token }]);
 
       set({ user: data.user, token: data.token, isLoading: false });
 
@@ -105,8 +105,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   checkAuth: async (): Promise<void> => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      const userJson = await AsyncStorage.getItem("user");
+      const { token } = getStoredValues(["token"]);
+      const { userJson } = getStoredValues(["userJson"]);
+
       const user: User | null = userJson ? JSON.parse(userJson) : null;
       set({ user, token });
     } catch (error) {
@@ -117,8 +118,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   logout: async (): Promise<void> => {
-    await AsyncStorage.removeItem("token");
-    await AsyncStorage.removeItem("user");
+    deleteStoredValues(["token"]);
+    deleteStoredValues(["userJson"]);
+
     set({ user: null, token: null });
   },
 }));

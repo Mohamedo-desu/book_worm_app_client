@@ -1,6 +1,7 @@
 import styles from "@/assets/styles/signup.styles";
 import COLORS from "@/constants/colors";
 import { useAuthStore } from "@/store/authStore";
+import { saveSecurely } from "@/store/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import React, { useState } from "react";
@@ -29,6 +30,10 @@ const SignUp = () => {
     if (!result.success) {
       Alert.alert("Error", result.error);
     }
+    saveSecurely([
+      { key: "email", value: email },
+      { key: "password", value: password },
+    ]);
   };
   return (
     <KeyboardAvoidingView
@@ -131,7 +136,7 @@ const SignUp = () => {
             {/* FOOTER */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>Have an account already?</Text>
-              <Link href={"/signup"} asChild>
+              <Link href={"/"} asChild>
                 <TouchableOpacity>
                   <Text style={styles.link}>login In</Text>
                 </TouchableOpacity>

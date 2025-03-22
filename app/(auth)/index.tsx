@@ -1,10 +1,11 @@
 import styles from "@/assets/styles/login.styles";
 import COLORS from "@/constants/colors";
 import { useAuthStore } from "@/store/authStore";
+import { getStoredValues, saveSecurely } from "@/store/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,11 +20,26 @@ import {
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordCleared, setPasswordCleared] = useState(false);
 
   const { isLoading, login, isCheckingAuth } = useAuthStore();
 
-  if (isCheckingAuth) return null;
+  const handlePasswordChange = (password: string) => {
+    if (password.trim().length === 0 && !passwordCleared) {
+      setPasswordCleared(true);
+    }
+  };
+
+  useEffect(() => {
+    const fetchStoredValues = () => {
+      const { email, password } = getStoredValues(["email", "password"]);
+      setEmail(email || "");
+      setPassword(password || "");
+      setPasswordCleared(!password || password.trim().length === 0);
+    };
+    fetchStoredValues();
+  }, []);
 
   const handleLogin = async () => {
     const result = await login(email, password);
@@ -31,7 +47,12 @@ const Login = () => {
     if (!result.success) {
       Alert.alert("Error", result.error);
     }
+    saveSecurely([
+      { key: "email", value: email },
+      { key: "password", value: password },
+    ]);
   };
+  if (isCheckingAuth) return null;
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -84,7 +105,10 @@ const Login = () => {
                   placeholder="Enter your password"
                   placeholderTextColor={COLORS.placeholderText}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    handlePasswordChange(text);
+                  }}
                   secureTextEntry={!showPassword}
                 />
                 <TouchableOpacity
@@ -92,7 +116,13 @@ const Login = () => {
                   style={styles.eyeIcon}
                 >
                   <Ionicons
-                    name={showPassword ? "eye-outline" : "eye-off-outline"}
+                    name={
+                      passwordCleared
+                        ? showPassword
+                          ? "eye-outline"
+                          : "eye-off-outline"
+                        : undefined
+                    }
                     size={20}
                     color={COLORS.primary}
                     style={styles.inputIcon}
