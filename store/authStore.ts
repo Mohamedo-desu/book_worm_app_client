@@ -22,6 +22,7 @@ interface AuthStore {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  isCheckingAuth: boolean;
   register: (
     username: string,
     email: string,
@@ -36,6 +37,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   user: {} as User,
   token: null,
   isLoading: false,
+  isCheckingAuth: true,
 
   register: async (
     username: string,
@@ -109,6 +111,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ user, token });
     } catch (error) {
       // Optionally handle error here
+    } finally {
+      set({ isCheckingAuth: false });
     }
   },
 

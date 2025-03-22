@@ -3,7 +3,7 @@ import COLORS from "@/constants/colors";
 import React from "react";
 import { ActivityIndicator, View } from "react-native";
 
-const Loader = ({ size = "large" }) => {
+const Loader = ({ size = "large" }: { size?: "small" | "large" }) => {
   return (
     <View
       style={[

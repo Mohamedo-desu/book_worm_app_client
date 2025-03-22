@@ -1,10 +1,3 @@
-import styles from "@/assets/styles/profile.styles";
-import Loader from "@/components/Loader";
-import LogoutButton from "@/components/LogoutButton";
-import ProfileHeader from "@/components/ProfileHeader";
-import { API_URL } from "@/constants/api";
-import COLORS from "@/constants/colors";
-import { useAuthStore } from "@/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -13,42 +6,59 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  ListRenderItem,
   RefreshControl,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 
-const profile = () => {
-  const [books, setBooks] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [deleteBookId, setDeleteBookId] = useState(null);
+import styles from "@/assets/styles/profile.styles";
+import Loader from "@/components/Loader";
+import LogoutButton from "@/components/LogoutButton";
+import ProfileHeader from "@/components/ProfileHeader";
+import { API_URL } from "@/constants/api";
+import COLORS from "@/constants/colors";
+import { useAuthStore } from "@/store/authStore";
+
+interface Book {
+  _id: string;
+  title: string;
+  caption: string;
+  rating: number;
+  image: string;
+  createdAt: string;
+}
+
+interface BooksResponse {
+  books: Book[];
+}
+
+const Profile: React.FC = () => {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
 
   const router = useRouter();
-
   const { token } = useAuthStore();
 
-  const fetchData = async () => {
+  const fetchData = async (): Promise<void> => {
     try {
       setIsLoading(true);
-
       const response = await fetch(`${API_URL}/api/books/user`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      const data = await response.json();
-
+      const data: BooksResponse = await response.json();
       if (!response.ok) {
-        throw new Error(
-          data ? (data as any).message : "Failed to fetch user books"
-        );
+        throw new Error((data as any)?.message || "Failed to fetch user books");
       }
       setBooks(data.books);
     } catch (error: any) {
       console.error("Error fetching data:", error);
-      Alert.alert("Error", "Failed to load profile data.Pull down to refresh");
+      Alert.alert("Error", "Failed to load profile data. Pull down to refresh");
     } finally {
       setIsLoading(false);
     }
@@ -58,10 +68,9 @@ const profile = () => {
     fetchData();
   }, []);
 
-  const handleDeleteBook = async (bookId: String) => {
+  const handleDeleteBook = async (bookId: string): Promise<void> => {
     try {
       setDeleteBookId(bookId);
-
       const response = await fetch(`${API_URL}/api/books/${bookId}`, {
         method: "DELETE",
         headers: {
@@ -69,11 +78,12 @@ const profile = () => {
         },
       });
       const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data ? (data as any).message : "Failed to delete book");
+        throw new Error((data as any)?.message || "Failed to delete book");
       }
       Alert.alert("Success", data.message);
+      // Optionally update the books list after deletion:
+      setBooks((prevBooks) => prevBooks.filter((book) => book._id !== bookId));
     } catch (error: any) {
       console.error("Error deleting book:", error);
       Alert.alert("Error", "Failed to delete book");
@@ -82,15 +92,12 @@ const profile = () => {
     }
   };
 
-  const confirmDelete = (bookId: string) => {
+  const confirmDelete = (bookId: string): void => {
     Alert.alert(
       "Delete Book",
       "Are you sure you want to delete this book?",
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           onPress: () => handleDeleteBook(bookId),
@@ -101,34 +108,6 @@ const profile = () => {
     );
   };
 
-  const renderItem = ({ item }) => {
-    return (
-      <View style={styles.bookItem}>
-        <Image source={item.image} style={styles.bookImage} />
-        <View style={styles.bookInfo}>
-          <Text style={styles.bookTitle}>{item.title}</Text>
-          <View style={styles.ratingContainer}>
-            {renderRatingStars(item.rating)}
-          </View>
-          <Text style={styles.bookCaption}>{item.caption}</Text>
-          <Text style={styles.bookDate}>
-            {new Date(item.createdAt).toLocaleDateString()}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => confirmDelete(item._id)}
-          activeOpacity={0.8}
-        >
-          {deleteBookId === item._id ? (
-            <ActivityIndicator size="small" color={COLORS.primary} />
-          ) : (
-            <Ionicons name="trash-outline" size={20} color={COLORS.primary} />
-          )}
-        </TouchableOpacity>
-      </View>
-    );
-  };
   const renderRatingStars = (rating: number): JSX.Element[] => {
     const stars: JSX.Element[] = [];
     for (let i = 1; i <= 5; i++) {
@@ -144,11 +123,40 @@ const profile = () => {
     }
     return stars;
   };
-  const handleRefresh = async () => {
+
+  const renderItem: ListRenderItem<Book> = ({ item }) => (
+    <View style={styles.bookItem}>
+      <Image source={{ uri: item.image }} style={styles.bookImage} />
+      <View style={styles.bookInfo}>
+        <Text style={styles.bookTitle}>{item.title}</Text>
+        <View style={styles.ratingContainer}>
+          {renderRatingStars(item.rating)}
+        </View>
+        <Text style={styles.bookCaption}>{item.caption}</Text>
+        <Text style={styles.bookDate}>
+          {new Date(item.createdAt).toLocaleDateString()}
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => confirmDelete(item._id)}
+        activeOpacity={0.8}
+      >
+        {deleteBookId === item._id ? (
+          <ActivityIndicator size="small" color={COLORS.primary} />
+        ) : (
+          <Ionicons name="trash-outline" size={20} color={COLORS.primary} />
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
+  const handleRefresh = async (): Promise<void> => {
     setRefreshing(true);
     await fetchData();
     setRefreshing(false);
   };
+
   if (isLoading && !refreshing) {
     return <Loader />;
   }
@@ -157,7 +165,6 @@ const profile = () => {
     <View style={styles.container}>
       <ProfileHeader />
       <LogoutButton />
-      {/* YOUR RECOMMENDATION */}
       <View style={styles.booksHeader}>
         <Text style={styles.booksTitle}>Your Recommendations</Text>
         <Text style={styles.booksCount}>{books.length} books</Text>
@@ -198,4 +205,4 @@ const profile = () => {
   );
 };
 
-export default profile;
+export default Profile;
