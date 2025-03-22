@@ -4,7 +4,11 @@ import { create } from "zustand";
 
 // Define a generic User type. Update fields as needed.
 interface User {
-  [key: string]: any;
+  id: string;
+  username: string;
+  email: string;
+  profileImage: string;
+  createdAt: string;
 }
 
 // Define the shape of the response returned by auth methods.
@@ -29,7 +33,7 @@ interface AuthStore {
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
-  user: null,
+  user: {} as User,
   token: null,
   isLoading: false,
 
